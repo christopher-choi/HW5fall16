@@ -28,7 +28,7 @@ Given /^I am on the RottenPotatoes home page$/ do
    click_on "More about #{title}"
  end
 
- Then /^(?:|I )should see "([^"]*)"$/ do |text|
+ Then (/^(?:|I )should see "([^"]*)"$/) do |text|
     expect(page).to have_content(text)
  end
 
@@ -46,29 +46,51 @@ Given /^I am on the RottenPotatoes home page$/ do
 # Add a declarative step here for populating the DB with movies.
 
 Given /the following movies have been added to RottenPotatoes:/ do |movies_table|
-  pending  # Remove this statement when you finish implementing the test step
   movies_table.hashes.each do |movie|
-    # Each returned movie will be a hash representing one row of the movies_table
-    # The keys will be the table headers and the values will be the row contents.
-    # Entries can be directly to the database with ActiveRecord methods
-    # Add the necessary Active Record call(s) to populate the database.
+    Movie.create(movie)
   end
 end
 
-When /^I have opted to see movies rated: "(.*?)"$/ do |arg1|
-  # HINT: use String#split to split up the rating_list, then
-  # iterate over the ratings and check/uncheck the ratings
-  # using the appropriate Capybara command(s)
-  pending  #remove this statement after implementing the test step
+When /^I have opted to see movies rated: "(.*?)"$/ do |rating_list|
+    rating_list = rating_list.split(%r{,\s*})
+    ratings = ["G","PG","R","NC-17","PG-13"]
+    ratings.each do |r|
+        if rating_list.include?(r)
+            check("ratings_#{r}")
+        else
+            uncheck("ratings_#{r}")
+        end
+    click_button 'Refresh'
+  end
 end
 
-Then /^I should see only movies rated: "(.*?)"$/ do |arg1|
-  pending  #remove this statement after implementing the test step
+Then /^I should see only movies rated: "(.*?)"$/ do |rating_list|
+    ratings = rating_list.split(%r{,\s*})
+    rating_check = true
+    page.all("tr/td[2]").each do |r|
+        if (ratings.include? r.text) == false
+            rating_check = false
+        end
+    end
+    expect(rating_check).to be_truthy
 end
 
 Then /^I should see all of the movies$/ do
-  pending  #remove this statement after implementing the test step
+    expect(page.all('tr/td[2]').count == Movie.count).to be_truthy
 end
 
+When /^I have opted to see movies sorted from A to Z$/ do
+   click_link('Movie Title')
+end
 
+Then(/^I should see "(.*?)" before "(.*?)"$/) do |title1, title2|
+    expect(page.body.index(title1) < page.body.index(title2)).to be_truthy
+end
 
+When /^I have opted to see movies sorted by release date$/ do
+    click_link('Release Date')
+end
+
+Then(/^I should see the date "(.*?)" before "(.*?)"$/) do |date1, date2|
+    expect(page.body.index(date1) < page.body.index(date2)).to be_truthy
+end
